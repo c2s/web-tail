@@ -46,10 +46,6 @@ example.log=example
 
 > 可以下载源码自行编译也可下载已构建好的软件包直接使用，当前提供的编译后的包为mac与linux-amd64平台
 
-## 从二进制包启动
-
-根据需要，下载构建好的相应系统的[二进制压缩包](https://github.com/plholx/web-tail/releases)，解压后修改`log.li`配置文件，启动`web-tail`即可
-
 ```bash
 # 下载web-tail-linux-amd64.zip或web-tail-Darwin-17.7.0.zip
 # 解压
