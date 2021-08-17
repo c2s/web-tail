@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>日志</title>
+    <style type="text/css">
+        pre {
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        #status_bar{
+            top: 0px; !important;
+            position: fixed;
+            left: 0;
+            bottom: 5px;
+            width: 98%;
+            background-color: #f5f5f5;
+            font-family: monospace;
+            border-bottom: 1px solid #968f8f;
+            height: 20px;
+        }
+        li[class*="sys"]{
+            list-style: initial;
+            color: #a5a5a5;
+        }
+        #screenIcon{
+            position: fixed;
+            right: 2px;
+            top: 2px;
+            cursor: pointer;
+            color: #007bff;
+        }
+        a{
+            text-decoration: none;
+        }
+        #fileData {
+            margin-top: 22px;
+        }
+    </style>
+</head>
+<body>
+<div id="status_bar">
+{{$F := .F}}
+{{$TN := .TN}}
+    <div style="float: left;">当前日志文件: <label title="{{$F.Path}}">{{$F.Alias}}</label></div>
+    <div style="float: right;">
+        <a href="javascript:void(0);" onclick="closeConn()" style="color:#dc3545;">断开ESC</a><label>|</label><a href="javascript:void(0);" onclick="clearScreen()" style="color:#ffc107;">清屏Ctrl-l</a><label>|</label><a href="javascript:void(0);" onclick="pause()" style="color:#007bff;" class="pause">暂停Space</a>
+        theme:
+        <select id="theme" onchange="themeChg(this)">
+            <option value="white">white</option>
+            <option value="black">black</option>
+        </select>
+        &nbsp;&nbsp;tail option -n:
+        <select id="tailOptionN" onchange="tailOptionNChg(this)">
+            <option value="" {{if eq "" $TN}} disabled="disabled" selected {{end}}>默认</option>
+            <option value="50" {{if eq "50" $TN}} disabled="disabled" selected {{end}}>50</option>
+            <option value="100" {{if eq "100" $TN}} disabled="disabled" selected {{end}}>100</option>
+            <option value="200" {{if eq "200" $TN}} disabled="disabled" selected {{end}}>200</option>
+            <option value="500" {{if eq "500" $TN}} disabled="disabled" selected {{end}}>500</option>
+            <option value="1000" {{if eq "1000" $TN}} disabled="disabled" selected {{end}}>1000</option>
+            <option value="2000" {{if eq "2000" $TN}} disabled="disabled" selected {{end}}>2000</option>
+        </select>
+        &nbsp;&nbsp;显示最大行数:
+        <select id="maxLines" onchange="maxLinesChg(this)">
+            <option value="500">500</option>
+            <option value="1000">1000</option>
+            <option value="2000">2000</option>
+        </select>
+        &nbsp;&nbsp;切换日志文件:
+        <select onchange="logfilechg(this)">
+        {{ range $k, $v := .FS }}
+            <option value="{{$v.PathMd5}}" {{if eq $v.PathMd5 $F.PathMd5}} disabled="disabled" selected {{end}}>
+            {{$v.Alias}}
+            </option>
+        {{ end }}
+        </select>
+    </div>
+</div>
+    <div id="screenIcon">
+        <svg onclick="fullSreenChg(false);" style="display: none;" class="bi bi-fullscreen-exit" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" d="M5.5 0a.5.5 0 01.5.5v4A1.5 1.5 0 014.5 6h-4a.5.5 0 010-1h4a.5.5 0 00.5-.5v-4a.5.5 0 01.5-.5zm5 0a.5.5 0 01.5.5v4a.5.5 0 00.5.5h4a.5.5 0 010 1h-4A1.5 1.5 0 0110 4.5v-4a.5.5 0 01.5-.5zM0 10.5a.5.5 0 01.5-.5h4A1.5 1.5 0 016 11.5v4a.5.5 0 01-1 0v-4a.5.5 0 00-.5-.5h-4a.5.5 0 01-.5-.5zm10 1a1.5 1.5 0 011.5-1.5h4a.5.5 0 010 1h-4a.5.5 0 00-.5.5v4a.5.5 0 01-1 0v-4z" clip-rule="evenodd"/>
+          </svg>
+          <svg onclick="fullSreenChg(true);" class="bi bi-arrows-fullscreen" width="1em" height="1em" viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" d="M1.464 10.536a.5.5 0 01.5.5v3h3a.5.5 0 010 1h-3.5a.5.5 0 01-.5-.5v-3.5a.5.5 0 01.5-.5z" clip-rule="evenodd"/>
+            <path fill-rule="evenodd" d="M5.964 10a.5.5 0 010 .707l-4.146 4.147a.5.5 0 01-.707-.708L5.257 10a.5.5 0 01.707 0zm8.854-8.854a.5.5 0 010 .708L10.672 6a.5.5 0 01-.708-.707l4.147-4.147a.5.5 0 01.707 0z" clip-rule="evenodd"/>
+            <path fill-rule="evenodd" d="M10.5 1.5A.5.5 0 0111 1h3.5a.5.5 0 01.5.5V5a.5.5 0 01-1 0V2h-3a.5.5 0 01-.5-.5zm4 9a.5.5 0 00-.5.5v3h-3a.5.5 0 000 1h3.5a.5.5 0 00.5-.5V11a.5.5 0 00-.5-.5z" clip-rule="evenodd"/>
+            <path fill-rule="evenodd" d="M10 9.964a.5.5 0 000 .708l4.146 4.146a.5.5 0 00.708-.707l-4.147-4.147a.5.5 0 00-.707 0zM1.182 1.146a.5.5 0 000 .708L5.328 6a.5.5 0 00.708-.707L1.889 1.146a.5.5 0 00-.707 0z" clip-rule="evenodd"/>
+            <path fill-rule="evenodd" d="M5.5 1.5A.5.5 0 005 1H1.5a.5.5 0 00-.5.5V5a.5.5 0 001 0V2h3a.5.5 0 00.5-.5z" clip-rule="evenodd"/>
+          </svg>
+    </div>
+    <pre id="fileData">
+<ol id="list"></ol>
+    </pre>
+    
+    <script type="text/javascript">
+        // 常用色值 同bootstrap4
+        var colors = {
+            primary: '#007bff',
+            secondary: '#6c757d',
+            success: '#28a745',
+            danger: '#dc3545',
+            warning: '#ffc107',
+            info: '#17a2b8',
+            light: '#f8f9fa',
+            dark: '#343a40',
+            white: '#fff',
+        };
+        // 切换全屏按钮状态
+        function chgFullScreenBtnStatus(){
+            if(window.fullScreen || document.webkitIsFullScreen || document.msFullscreenEnabled || document.mozFullscreenEnabled){
+                console.log("全屏模式");
+                document.querySelector(".bi-fullscreen-exit").style.display = "block";
+                document.querySelector(".bi-arrows-fullscreen").style.display = "none";
+            }else{
+                console.log("非全屏模式");
+                document.querySelector(".bi-fullscreen-exit").style.display = "none";
+                document.querySelector(".bi-arrows-fullscreen").style.display = "block";
+            }
+        }
+        // 监听窗口变化事件,切换全屏按钮状态
+        window.onresize = function(){
+            chgFullScreenBtnStatus();
+        }
+        // 全屏切换
+        function fullSreenChg(fullscreen){
+            var element = document.documentElement;
+            if(fullscreen){
+                if (element.requestFullscreen) {
+                    // W3C
+                    element.requestFullscreen();
+                } else if (element.webkitRequestFullScreen) {
+                    // CHROME
+                    element.webkitRequestFullScreen();
+                } else if (element.mozRequestFullScreen) {
+                    // FIREFOX
+                    element.mozRequestFullScreen();
+                } else if (element.msRequestFullscreen) {
+                    // IE11
+                    element.msRequestFullscreen();
+                }
+            }else{
+                if (document.exitFullscreen) {
+                    // W3C
+                    document.exitFullscreen();
+                } else if (document.webkitCancelFullScreen) {
+                    // CHROME
+                    document.webkitCancelFullScreen();
+                } else if (document.mozCancelFullScreen) {
+                    // FIREFOX
+                    document.mozCancelFullScreen();
+                } else if (document.msExitFullscreen) {
+                    // IE
+                    document.msExitFullscreen();
+                }
+            }
+            chgFullScreenBtnStatus();
+        }
+        // 获取url中的参数
+        function urlParam(name) {
+            var reg = new RegExp("(^|&)"+ name +"=([^&]*)(&|$)");
+            var r = decodeURI(window.location.search).substr(1).match(reg);
+            if(r){
+                return decodeURIComponent(r[2]);
+            } 
+            return undefined;
+        };
+        var host = window.location.hostname;
+        var port = window.location.port;
+        var urlParam = {
+            md5: urlParam("md5"),
+            n: urlParam("n"),
+        };
+        // 切换url
+        function reload(){
+            var url = "/log";
+            var md5 = urlParam.md5;
+            var n = urlParam.n;
+            if(md5){
+                url = url + "?md5="+md5 +(n?("&n="+n):"");
+            }else if(n){
+                url = url + "?n="+n;
+            }
+            window.location.href = url;
+        }
+        // 切换日志文件
+        function logfilechg(t){
+            // window.location.href = "/log?md5="+t.value;
+            urlParam.md5 = t.value;
+            reload();
+        }
+        // 页面是否自动滚动标志
+        var autoScroll = true;
+        var data = document.getElementById("fileData");
+        var ol = document.getElementById("list");
+        // 主题
+        var localStorageThemeKey = "wt_theme";
+        document.getElementById("theme").value = localStorage.getItem(localStorageThemeKey)||"white";
+        // 清空过早的日志
+        var localStorageKey = "wt_max_lines";
+        var logLinesCount = 0;
+        var logLinesMax = ((localStorage.getItem(localStorageKey)||0)-0)||500;
+        document.getElementById("maxLines").value = logLinesMax;
+
+        function clearEarlyLog(){
+            // 控制autoScroll=true时再清理较早的日志，避免滚动条一直滚动
+            while(logLinesCount > logLinesMax && autoScroll){
+                var fli = document.querySelector("li:first-child");
+                fli.parentNode.removeChild(fli);
+                logLinesCount--;
+            }
+        }
+        // 修改tail的option -n参数
+        function tailOptionNChg(t){
+            urlParam.n = t.value;
+            reload();
+        }
+        // 修改主题
+        function themeChg(t){
+            var v = t.value;
+            var cacheTheme = localStorage.getItem(localStorageThemeKey);
+            if(cacheTheme == v){
+                return;
+            }
+            if(v == "black"){
+                document.getElementsByTagName("html")[0].style.filter="invert(1)";
+                document.getElementsByTagName("body")[0].style.backgroundColor="#000000";
+                document.getElementById("fileData")[0].style.backgroundColor="#000000";
+            }else if(v == "white"){
+                document.getElementsByTagName("html")[0].style.filter="invert(0)";
+                document.getElementsByTagName("body")[0].style.backgroundColor="#ffffff";
+            }
+        }
+        // 清屏
+        function clearScreen(){
+            ol.innerHTML = "";
+            logLinesCount = 0;
+            append(genSysMsg("清空屏幕"));
+        }
+        // 暂停
+        var pauseFlag = false;
+        function pause(){
+            if(conn.readyState == conn.OPEN){
+                pauseFlag = !pauseFlag;
+                document.querySelector(".pause").textContent = pauseFlag?"继续Space":"暂停Space";
+                append(genSysMsg(pauseFlag?"暂停打印日志":"继续打印日志"));
+            }
+        }
+        // 断开链接
+        function closeConn(){
+            if(conn.readyState == conn.OPEN){
+                conn.send("^C");
+                append(genSysMsg("已退出日志查看"));
+            }
+        }
+        // 修改页面显示最大行数
+        function maxLinesChg(t){
+            var v = t.value-0;
+            // 当调整后的最大行数小于当前最大行数时清屏
+            if( v < logLinesMax){
+                clearScreen();
+            }
+            logLinesMax = v;
+            localStorage.setItem(localStorageKey, v);
+        }
+        // 日志颜色
+        var errReg = /err[:\]]|error|exception|错误|异常/i;
+        var warnReg = /warn/i;
+        function logColor(logContent){
+            if(logContent){
+                if(errReg.test(logContent)){
+                    // 通过去掉正则g标志来解决一次true一次false的问题
+                    // errReg.lastIndex = 0;
+                    return colors.danger;
+                }else if(warnReg.test(logContent)){
+                    // warnReg.lastIndex = 0;
+                    return colors.warning;
+                }
+            }
+            return "";
+        }
+        // 输出日志
+        function append(data){
+            if(data){
+                if(data.kind == "log" && pauseFlag){
+                    return;
+                }
+                var li = document.createElement('li');
+                li.className = data.kind||"";
+                li.textContent = data.msg||data;
+                if(data.kind == "log"){
+                    var c = logColor(data.msg||data);
+                    if(c){
+                        li.style.color = c;
+                    }
+                }
+                ol.appendChild(li);
+
+                logLinesCount++;
+                // 清空早期日志
+                clearEarlyLog();
+            }
+            scrollToBottom();
+        }
+        // autoScroll为true时将页面滚动到底部
+        function scrollToBottom(){
+            if(autoScroll){
+                var h = document.body.clientHeight;
+                // window.scroll({top:h,left:0,behavior:'smooth'});
+                window.scroll({top:h,left:0});
+            }
+        }
+        // 监听页面滚动事件
+        // 当页面位于最底部时将autoScroll设置为true，使页面可自动滚动至日志最新位置
+        // 当页面没有位于最底部时将autoScroll设置为false，方便手动上下翻滚页面查看日志
+        window.onscroll = function(){
+            // 滚动条在Y轴上的滚动距离
+            var scrollTop = 0, bodyScrollTop = 0, documentScrollTop = 0;
+            // 文档的总高度
+            var scrollHeight = 0, bodyScrollHeight = 0, documentScrollHeight = 0;
+
+        　　 if(document.body){
+                bodyScrollTop = document.body.scrollTop;
+                bodyScrollHeight = document.body.scrollHeight;
+            }
+            if(document.documentElement){
+                documentScrollTop = document.documentElement.scrollTop;
+                documentScrollHeight = document.documentElement.scrollHeight;
+            }
+            scrollTop = (bodyScrollTop - documentScrollTop > 0) ? bodyScrollTop : documentScrollTop;
+            scrollHeight = (bodyScrollHeight - documentScrollHeight > 0) ? bodyScrollHeight : documentScrollHeight;
+            
+            // 浏览器视口的高度
+            var windowHeight = 0;
+            if(document.compatMode == "CSS1Compat"){
+                windowHeight = document.documentElement.clientHeight;
+            }else{
+                windowHeight = document.body.clientHeight;
+            }
+            if(scrollTop + windowHeight == scrollHeight){
+                autoScroll = true;
+            }else{
+                autoScroll = false;
+            }
+        };
+        // 创建websocket 系统json消息
+        function genSysMsg(msg){
+            return {msg: msg, kind: "sys"};
+        }
+        // 创建websocket连接
+        var conn = new WebSocket("ws://" + host + (port ? (":" + port) : "") + "/ws"+window.location.search);
+        // 连接打开事件
+        conn.onopen = function () {
+            console.log("Socket 已打开");
+            conn.send("测试消息");
+        };
+        conn.onclose = function (evt) {
+            append(genSysMsg("连接已关闭"));
+        }
+        conn.onmessage = function (evt) {
+            append(eval("("+evt.data+")"));
+        }
+        // 发生了错误事件
+        conn.onerror = function () {
+            alert("Socket发生了错误");
+        }
+        // 窗口关闭时，关闭连接
+        window.unload = function () {
+            console.log("关闭ws");
+            conn.close();
+        };
+        // 快捷键
+        document.onkeydown = function (event) {
+            var e = event || window.event || arguments.callee.caller.arguments[0];
+            // 按ESC键时退出日志查看
+            if(e){
+                if (e.keyCode == 27) {
+                    console.log("按下ESC键");
+                    closeConn();
+                }else if(e.keyCode == 32){
+                    console.log("按下space暂停/继续");
+                    pause();
+                }
+                if(e.keyCode == 76 && e.ctrlKey){
+                    console.log("按下Ctrl l清屏");
+                    clearScreen();
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
