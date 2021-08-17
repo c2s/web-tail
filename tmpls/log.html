@@ -353,7 +353,7 @@
         // 连接打开事件
         conn.onopen = function () {
             console.log("Socket 已打开");
-            conn.send("测试消息");
+            conn.send("链接成功");
         };
         conn.onclose = function (evt) {
             append(genSysMsg("连接已关闭"));
